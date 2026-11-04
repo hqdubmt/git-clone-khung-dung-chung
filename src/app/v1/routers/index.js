@@ -10,4 +10,7 @@ router.get('/', (req, res) => {
   res.status(200).json(healthcheck);   
 });
 
+
+// auth routes
+router.use('/auth', require('./auth/index'));
 module.exports = router;
