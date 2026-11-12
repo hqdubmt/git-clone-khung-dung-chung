@@ -1,0 +1,19 @@
+{
+  "name": "express-error-kit",
+  "version": "1.0.0",
+  "description": "Reusable HTTP errors, async handlers, and Express error middleware",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "express",
+    "error-handler",
+    "http-errors"
+  ],
+  "license": "MIT"
+}

@@ -1,28 +1,46 @@
-const appConstants = require('../constants/app.constant');
-const appHelper = require('../helpers/app.helper');
+const parsePositiveInteger = (name, value, fallback, maximum = Number.MAX_SAFE_INTEGER) => {
+  if (value === undefined || value === '') {
+    return fallback;
+  }
 
-// Kịch bản 1: Môi trường Phát triển (Dành cho bạn lập trình trên máy cá nhân)
-const Dev = {
-  PORT: process.env.APP_PORT || appConstants.APP_PORT,
-  ENV: 'Dev',
-  LOG_FORMAT: appConstants.MORGAN_FORMAT.DEV // Hiện thị log ngắn gọn, có màu xanh đỏ dễ nhìn
+  if (!/^\d+$/.test(String(value).trim())) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+
+  const parsedValue = Number(value);
+  if (!Number.isSafeInteger(parsedValue) || parsedValue < 1 || parsedValue > maximum) {
+    throw new Error(`${name} must be between 1 and ${maximum}`);
+  }
+
+  return parsedValue;
 };
 
-// Kịch bản 2: Môi trường Chạy thực tế (Khi bạn up lên mạng cho khách hàng dùng thật)
-const Prod = {
-  PORT: process.env.APP_PORT || 8080, // Thực tế thường chạy cổng mạng tiêu chuẩn
-  ENV: 'Prod',
-  LOG_FORMAT: appConstants.MORGAN_FORMAT.COMBINED // Ghi log cực kỳ chi tiết (IP, thiết bị) để bảo mật
-};
-
-// Gom tất cả kịch bản vào một đối tượng quản lý
-const configMapping = {
-  Dev,
-  Prod
-};
-
-// Đọc xem file .env đang yêu cầu môi trường nào (Mặc định nếu quên điền là 'Dev')
 const currentEnv = process.env.APP_ENV || 'Dev';
+if (currentEnv !== 'Dev' && currentEnv !== 'Prod') {
+  throw new Error('APP_ENV must be either "Dev" or "Prod"');
+}
 
-// Sử dụng trợ thủ helper để lọc và xuất ra đúng cấu hình được yêu cầu
-module.exports = appHelper.getConfig(currentEnv, configMapping);
+const selectedConfig = {
+  ENV: currentEnv,
+  PORT: currentEnv === 'Prod' ? 8080 : 5001,
+  LOG_FORMAT: currentEnv === 'Prod' ? 'combined' : 'dev'
+};
+const configuredPort = process.env.APP_PORT || process.env.PORT;
+const port = parsePositiveInteger('APP_PORT', configuredPort, selectedConfig.PORT, 65535);
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+module.exports = {
+  ...selectedConfig,
+  PORT: port,
+  CORS_ORIGINS: corsOrigins,
+  RATE_LIMIT_WINDOW_MS: parsePositiveInteger(
+    'RATE_LIMIT_WINDOW_MS',
+    process.env.RATE_LIMIT_WINDOW_MS,
+    15 * 60 * 1000,
+    2147483647
+  ),
+  RATE_LIMIT_MAX: parsePositiveInteger('RATE_LIMIT_MAX', process.env.RATE_LIMIT_MAX, 100)
+};
